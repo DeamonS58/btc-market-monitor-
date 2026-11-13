@@ -16,7 +16,7 @@ def main():
 
     try:
         data = get_json(
-            "https://api.bybit.com/v5/market/tickers"
+            "https://api.bytick.com/v5/market/tickers"
             "?category=spot&symbol=BTCUSDT"
         )
         if data.get("retCode") != 0:
