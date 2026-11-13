@@ -8,6 +8,56 @@ on:
 
 permissions:
   contents: read
+  actions: read
+
+concurrency:
+  group: btc-market-monitor
+  cancel-in-progress: false
+
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+
+    steps:
+      - name: Get repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Restore previous analysis
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh run download \
+            --repo "$GITHUB_REPOSITORY" \
+            --name btc-monitor-state \
+            --dir previous-state || true
+
+      - name: Check BTC prices
+        run: python monitor.py
+
+      - name: Save analysis state
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: btc-monitor-state
+          path: monitor-state.json
+          retention-days: 7
+          if-no-files-found: ignore
+
+name: BTC Market Monitor
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '7,22,37,52 * * * *'
+
+permissions:
+  contents: read
 
 jobs:
   monitor:
