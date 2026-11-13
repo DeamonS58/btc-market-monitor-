@@ -1,7 +1,9 @@
 
 import json
 import urllib.request
+from pathlib import Path
 from datetime import datetime, timezone
+
 
 BASE = "https://api.pionex.com/api/v1/market"
 SYMBOL = "BTC_USDT"
@@ -148,9 +150,12 @@ def main():
     except Exception as error:
         print("Ticker error:", error)
 
+    
+    previous_state = load_previous_state()
     results = {}
 
     for interval in ("60M", "4H", "1D"):
+
         try:
             results[interval] = analyze(interval)
         except Exception as error:
@@ -179,7 +184,74 @@ def main():
 
     print("\nFINAL DECISION:", decision)
     print("No automatic trades. Analysis only.")
+    
+    compare_states(previous_state, {"results": results})
+    save_state(results)
+
+STATE_FILE = Path("monitor-state.json")
+PREVIOUS_FILE = Path("previous-state/monitor-state.json")
 
 
+def load_previous_state():
+    if not PREVIOUS_FILE.exists():
+        print("\nMEMORY: No previous analysis available")
+        return None
+
+    try:
+        with PREVIOUS_FILE.open("r", encoding="utf-8") as f:
+            state = json.load(f)
+        print("\nMEMORY: Previous analysis loaded")
+        return state
+    except (OSError, ValueError) as error:
+        print("MEMORY: Could not read previous state:", error)
+        return None
+
+
+def compare_states(previous, current):
+    print("\n--- CHANGES SINCE PREVIOUS RUN ---")
+
+    if not previous:
+        print("First observation. Nothing to compare yet.")
+        return
+
+    for interval in ("60M", "4H", "1D"):
+        old = previous.get("results", {}).get(interval)
+        new = current.get("results", {}).get(interval)
+
+        if not old or not new:
+            print(f"{interval}: Comparison unavailable")
+            continue
+
+        if old["trend"] != new["trend"]:
+            print(
+                f"{interval}: TREND CHANGED "
+                f"{old['trend']} -> {new['trend']}"
+            )
+
+        if old["bottom"] != new["bottom"]:
+            print(
+                f"{interval}: BOTTOM SIGNAL CHANGED "
+                f"{old['bottom']} -> {new['bottom']}"
+            )
+
+        rsi_change = new["rsi"] - old["rsi"]
+        if abs(rsi_change) >= 3:
+            print(f"{interval}: RSI changed by {rsi_change:+.2f}")
+
+    print("Comparison completed.")
+
+
+def save_state(results):
+    state = {
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "source": "Pionex",
+        "symbol": SYMBOL,
+        "results": results,
+    }
+
+    with STATE_FILE.open("w", encoding="utf-8") as f:
+        json.dump(state, f, indent=2)
+
+    print("MEMORY: Current analysis saved")
 if __name__ == "__main__":
     main()
