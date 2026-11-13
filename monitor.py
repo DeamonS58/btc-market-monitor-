@@ -49,7 +49,7 @@ def get_candles(interval):
     candles.sort(key=lambda c: c["time"])
 
     # Exclude the currently forming candle.
-    seconds = {"1H": 3600, "4H": 14400, "1D": 86400}
+    seconds = {"60M": 3600, "4H": 14400, "1D": 86400}
     now_ms = int(datetime.now(timezone.utc).timestamp() * 1000)
     duration_ms = seconds[interval] * 1000
     candles = [
@@ -150,7 +150,7 @@ def main():
 
     results = {}
 
-    for interval in ("1H", "4H", "1D"):
+    for interval in ("60M", "4H", "1D"):
         try:
             results[interval] = analyze(interval)
         except Exception as error:
@@ -164,7 +164,7 @@ def main():
         print("\nSTATUS: INCOMPLETE DATA - OBSERVE")
         return
 
-    h1 = results["1H"]
+    h1 = results["60M"]
     h4 = results["4H"]
     d1 = results["1D"]
 
