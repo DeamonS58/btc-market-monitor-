@@ -133,11 +133,18 @@ def analyze(interval):
     print(f"Volume ratio (5 vs 20): {vol_ratio:.2f}")
     print(f"Possible bottom: {'YES' if possible_bottom else 'NO'}")
 
+    
     return {
         "trend": trend,
         "rsi": rsi,
-        "bottom": possible_bottom
+        "bottom": possible_bottom,
+        "close": last["close"],
+        "volume": last["volume"],
+        "volume_ratio": vol_ratio,
+        "support": support,
+        "resistance": resistance
     }
+
 
 
 def main():
@@ -266,15 +273,29 @@ def save_history(results):
         HISTORY_FILE.write_bytes(previous.read_bytes())
 
     new_file = not HISTORY_FILE.exists()
+    if not new_file:
+    with HISTORY_FILE.open("r", encoding="utf-8") as f:
+        header = f.readline().strip()
+
+    if '"close"' not in header and "close" not in header.split(","):
+        import shutil
+        shutil.copyfile(HISTORY_FILE, "btc-history-old.csv")
+        HISTORY_FILE.unlink()
+        new_file = True
+        print("HISTORY: Old format backed up")
 
     with HISTORY_FILE.open("a", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
 
-        if new_file:
-            writer.writerow([
-                "timestamp_utc", "interval",
-                "trend", "rsi", "possible_bottom"
-            ])
+        
+            if new_file:
+                writer.writerow([
+                    "timestamp_utc", "interval",
+                    "trend", "rsi", "possible_bottom",
+                    "close", "volume", "volume_ratio",
+                    "support", "resistance"
+                ])
+
 
         timestamp = datetime.now(timezone.utc).isoformat()
 
@@ -285,6 +306,11 @@ def save_history(results):
                 data["trend"],
                 round(data["rsi"], 2),
                 data["bottom"]
+                round(data["close"], 2),
+                round(data["volume"], 2),
+                round(data["volume_ratio"], 2),
+                round(data["support"], 2),
+                round(data["resistance"], 2),
             ])
 
     print("HISTORY: BTC observations saved")
