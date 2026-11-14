@@ -45,6 +45,8 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: btc-monitor-state
-          path: monitor-state.json
+          path: 
+            monitor-state.json
+            btc-history.csv
           retention-days: 7
           if-no-files-found: ignore
