@@ -48,5 +48,6 @@ jobs:
           path: |
             monitor-state.json
             btc-history.csv
+            btc-history-old.csv
           retention-days: 7
           if-no-files-found: ignore
