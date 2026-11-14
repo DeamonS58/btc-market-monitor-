@@ -1,5 +1,6 @@
 
 import json
+import csv
 import urllib.request
 from pathlib import Path
 from datetime import datetime, timezone
@@ -187,8 +188,12 @@ def main():
     
     compare_states(previous_state, {"results": results})
     save_state(results)
+    save_history(results)
 
 STATE_FILE = Path("monitor-state.json")
+
+HISTORY_FILE = Path("btc-history.csv")
+
 PREVIOUS_FILE = Path("previous-state/monitor-state.json")
 
 
@@ -253,5 +258,36 @@ def save_state(results):
         json.dump(state, f, indent=2)
 
     print("MEMORY: Current analysis saved")
+    
+def save_history(results):
+    previous = Path("previous-state/btc-history.csv")
+
+    if previous.exists():
+        HISTORY_FILE.write_bytes(previous.read_bytes())
+
+    new_file = not HISTORY_FILE.exists()
+
+    with HISTORY_FILE.open("a", newline="", encoding="utf-8") as f:
+        writer = csv.writer(f)
+
+        if new_file:
+            writer.writerow([
+                "timestamp_utc", "interval",
+                "trend", "rsi", "possible_bottom"
+            ])
+
+        timestamp = datetime.now(timezone.utc).isoformat()
+
+        for interval, data in results.items():
+            writer.writerow([
+                timestamp,
+                interval,
+                data["trend"],
+                round(data["rsi"], 2),
+                data["bottom"]
+            ])
+
+    print("HISTORY: BTC observations saved")
+
 if __name__ == "__main__":
     main()
