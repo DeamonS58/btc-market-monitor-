@@ -306,7 +306,7 @@ def save_history(results):
                 interval,
                 data["trend"],
                 round(data["rsi"], 2),
-                data["bottom"]
+                data["bottom"],
                 round(data["close"], 2),
                 round(data["volume"], 2),
                 round(data["volume_ratio"], 2),
