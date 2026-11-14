@@ -273,16 +273,17 @@ def save_history(results):
         HISTORY_FILE.write_bytes(previous.read_bytes())
 
     new_file = not HISTORY_FILE.exists()
+    
     if not new_file:
-    with HISTORY_FILE.open("r", encoding="utf-8") as f:
-        header = f.readline().strip()
+        with HISTORY_FILE.open("r", encoding="utf-8") as f:
+            header = f.readline().strip()
 
-    if '"close"' not in header and "close" not in header.split(","):
-        import shutil
-        shutil.copyfile(HISTORY_FILE, "btc-history-old.csv")
-        HISTORY_FILE.unlink()
-        new_file = True
-        print("HISTORY: Old format backed up")
+        if '"close"' not in header and "close" not in header.split(","):
+            import shutil
+            shutil.copyfile(HISTORY_FILE, "btc-history-old.csv")
+            HISTORY_FILE.unlink()
+            new_file = True
+            print("HISTORY: Old format backed up")
 
     with HISTORY_FILE.open("a", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
