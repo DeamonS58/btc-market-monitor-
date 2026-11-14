@@ -289,7 +289,7 @@ def save_history(results):
         writer = csv.writer(f)
 
         
-            if new_file:
+        if new_file:
                 writer.writerow([
                     "timestamp_utc", "interval",
                     "trend", "rsi", "possible_bottom",
