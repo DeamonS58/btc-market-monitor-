@@ -1,4 +1,3 @@
-
 name: BTC Market Monitor
 
 on:
@@ -7,7 +6,7 @@ on:
     - cron: '7,22,37,52 * * * *'
 
 permissions:
-  contents: read
+  contents: write
   actions: read
 
 concurrency:
@@ -16,38 +15,50 @@ concurrency:
 
 jobs:
   monitor:
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    timeout-minutes: 3
+    timeout-minutes: 5
 
     steps:
-      - name: Get repository
+      - name: Get latest main
         uses: actions/checkout@v4
+        with:
+          ref: main
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
 
-      - name: Restore previous analysis
+      - name: Import existing history on first run
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh run download \
-            --repo "$GITHUB_REPOSITORY" \
-            --name btc-monitor-state \
-            --dir previous-state || true
+          if [ -f btc-history.csv ]; then
+            exit 0
+          fi
 
-      - name: Check BTC prices
-        run: python monitor.py
+          run_id="$(gh run list --workflow btc-monitor.yml --branch main \
+            --status success --limit 1 --json databaseId --jq '.[0].databaseId // empty')"
+          test -n "$run_id"
+          gh run download "$run_id" --name btc-monitor-state --dir previous-state
+          test -s previous-state/btc-history.csv
+          mv previous-state/btc-history.csv btc-history.csv
+          if [ -f previous-state/monitor-state.json ]; then
+            mv previous-state/monitor-state.json monitor-state.json
+          fi
+          if [ -f previous-state/btc-history-old.csv ]; then
+            mv previous-state/btc-history-old.csv btc-history-old.csv
+          fi
 
-      - name: Save analysis state
-        if: success()
-        uses: actions/upload-artifact@v4
-        with:
-          name: btc-monitor-state
-          path: |
-            monitor-state.json
-            btc-history.csv
-            btc-history-old.csv
-          retention-days: 7
-          if-no-files-found: ignore
+      - name: Check BTC prices and publish history
+        run: |
+          python monitor.py
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add btc-history.csv monitor-state.json
+          if [ -f btc-history-old.csv ]; then
+            git add btc-history-old.csv
+          fi
+          git commit -m 'Update BTC market history'
+          git push origin HEAD:main
