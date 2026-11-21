@@ -1,4 +1,3 @@
-
 import json
 import csv
 import urllib.request
@@ -142,9 +141,36 @@ def analyze(interval):
         "volume": last["volume"],
         "volume_ratio": vol_ratio,
         "support": support,
-        "resistance": resistance
+        "resistance": resistance,
+        "drop_alert": detect_drop(candles) if interval == "60M" else None,
     }
 
+
+
+def detect_drop(candles):
+    hour_ms = 3_600_000
+    latest = candles[-1]
+    closes_by_time = {candle["time"]: candle["close"] for candle in candles}
+    changes = []
+    for hours, threshold in ((1, 3), (4, 5)):
+        earlier = closes_by_time.get(latest["time"] - hours * hour_ms)
+        if earlier and latest["close"] / earlier <= (100 - threshold) / 100:
+            change = (latest["close"] / earlier - 1) * 100
+            changes.append(f"{change:+.2f}% over {hours}h")
+
+    if not changes:
+        return None
+
+    closed_at = datetime.fromtimestamp(
+        (latest["time"] + hour_ms) / 1000, timezone.utc
+    ).isoformat()
+    return {
+        "candle_time": latest["time"],
+        "message": (
+            f"Pionex BTC/USDT sharp drop: {', '.join(changes)}. "
+            f"Closed at {latest['close']:.2f} USDT ({closed_at})."
+        ),
+    }
 
 
 def main():
@@ -170,8 +196,11 @@ def main():
             print(f"{interval} analysis error: {error}")
 
     if not results:
-        print("\nSTATUS: NO DATA - DO NOT ENTER")
-        return
+        raise SystemExit("No completed candle data was available")
+
+    alert = results.get("60M", {}).pop("drop_alert", None)
+    save_history(results)
+    save_state(results, previous_state, alert)
 
     if len(results) != 3:
         print("\nSTATUS: INCOMPLETE DATA - OBSERVE")
@@ -194,29 +223,18 @@ def main():
     print("No automatic trades. Analysis only.")
     
     compare_states(previous_state, {"results": results})
-    save_state(results)
-    save_history(results)
 
 STATE_FILE = Path("monitor-state.json")
 
 HISTORY_FILE = Path("btc-history.csv")
 
-PREVIOUS_FILE = Path("previous-state/monitor-state.json")
 
 
 def load_previous_state():
-    if not PREVIOUS_FILE.exists():
-        print("\nMEMORY: No previous analysis available")
+    if not STATE_FILE.exists():
         return None
-
-    try:
-        with PREVIOUS_FILE.open("r", encoding="utf-8") as f:
-            state = json.load(f)
-        print("\nMEMORY: Previous analysis loaded")
-        return state
-    except (OSError, ValueError) as error:
-        print("MEMORY: Could not read previous state:", error)
-        return None
+    with STATE_FILE.open(encoding="utf-8") as f:
+        return json.load(f)
 
 
 def compare_states(previous, current):
@@ -253,50 +271,45 @@ def compare_states(previous, current):
     print("Comparison completed.")
 
 
-def save_state(results):
-    state = {
+def write_state(state):
+    with STATE_FILE.open("w", encoding="utf-8") as f:
+        json.dump(state, f, indent=2)
+        f.write("\n")
+
+
+def save_state(results, previous_state, alert):
+    previous_state = previous_state or {}
+    last_alert = previous_state.get("last_alert_candle", -1)
+    if alert and alert["candle_time"] > last_alert:
+        last_alert = alert["candle_time"]
+        print(f"::warning::{alert['message']}")
+
+    write_state({
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "source": "Pionex",
         "symbol": SYMBOL,
         "results": results,
-    }
+        "last_alert_candle": last_alert,
+    })
 
-    with STATE_FILE.open("w", encoding="utf-8") as f:
-        json.dump(state, f, indent=2)
 
-    print("MEMORY: Current analysis saved")
-    
+HISTORY_COLUMNS = [
+    "timestamp_utc", "interval", "trend", "rsi", "possible_bottom",
+    "close", "volume", "volume_ratio", "support", "resistance",
+]
+
+
 def save_history(results):
-    previous = Path("previous-state/btc-history.csv")
-
-    if previous.exists():
-        HISTORY_FILE.write_bytes(previous.read_bytes())
-
     new_file = not HISTORY_FILE.exists()
-    
     if not new_file:
-        with HISTORY_FILE.open("r", encoding="utf-8") as f:
-            header = f.readline().strip()
-
-        if '"close"' not in header and "close" not in header.split(","):
-            import shutil
-            shutil.copyfile(HISTORY_FILE, "btc-history-old.csv")
-            HISTORY_FILE.unlink()
-            new_file = True
-            print("HISTORY: Old format backed up")
+        with HISTORY_FILE.open(newline="", encoding="utf-8") as f:
+            if next(csv.reader(f), None) != HISTORY_COLUMNS:
+                raise ValueError("Unexpected CSV header. Existing history left intact.")
 
     with HISTORY_FILE.open("a", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
-
-        
         if new_file:
-                writer.writerow([
-                    "timestamp_utc", "interval",
-                    "trend", "rsi", "possible_bottom",
-                    "close", "volume", "volume_ratio",
-                    "support", "resistance"
-                ])
-
+            writer.writerow(HISTORY_COLUMNS)
 
         timestamp = datetime.now(timezone.utc).isoformat()
 
