@@ -1,37 +1,37 @@
 {
-  "timestamp": "2026-11-22T23:21:14.646065+00:00",
+  "timestamp": "2026-11-23T00:06:17.096931+00:00",
   "source": "Pionex",
   "symbol": "BTC_USDT",
   "results": {
     "60M": {
-      "trend": "UP",
-      "rsi": 60.53697944980936,
+      "trend": "SIDEWAYS / MIXED",
+      "rsi": 62.40331363189441,
       "bottom": false,
-      "close": 61115.08,
-      "volume": 808.579053,
-      "volume_ratio": 0.6270391565277171,
+      "close": 61271.09,
+      "volume": 1216.026474,
+      "volume_ratio": 0.6794654609996992,
       "support": 58772.72,
       "resistance": 61669.99
     },
     "4H": {
       "trend": "UP",
-      "rsi": 47.60847889580943,
+      "rsi": 50.560462223009914,
       "bottom": false,
-      "close": 60737.13,
-      "volume": 3605.979225,
-      "volume_ratio": 0.6927880485043783,
+      "close": 61271.09,
+      "volume": 3185.689086,
+      "volume_ratio": 0.673048969814635,
       "support": 55177.09,
-      "resistance": 64080.8,
+      "resistance": 64079.99,
       "drop_alert": null
     },
     "1D": {
       "trend": "DOWN",
-      "rsi": 22.56170314450631,
+      "rsi": 26.67595964552494,
       "bottom": true,
-      "close": 60215.78,
-      "volume": 50586.281621,
-      "volume_ratio": 1.5165043635584963,
-      "support": 57779.32,
+      "close": 61271.09,
+      "volume": 25275.030515,
+      "volume_ratio": 1.4086077482298622,
+      "support": 55177.09,
       "resistance": 81196.01,
       "drop_alert": null
     }
