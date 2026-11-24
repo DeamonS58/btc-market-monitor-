@@ -1,17 +1,17 @@
 {
-  "timestamp": "2026-11-24T12:00:03.831125+00:00",
+  "timestamp": "2026-11-24T13:19:11.594397+00:00",
   "source": "Pionex",
   "symbol": "BTC_USDT",
   "results": {
     "60M": {
       "trend": "SIDEWAYS / MIXED",
-      "rsi": 44.812991845720944,
+      "rsi": 45.66733555954534,
       "bottom": false,
-      "close": 60424.38,
-      "volume": 1167.449746,
-      "volume_ratio": 0.8060177991503533,
+      "close": 60484.16,
+      "volume": 983.455224,
+      "volume_ratio": 0.8295529513005838,
       "support": 59391.22,
-      "resistance": 63665.78
+      "resistance": 62943.44
     },
     "4H": {
       "trend": "DOWN",
